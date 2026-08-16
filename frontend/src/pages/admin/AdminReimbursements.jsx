@@ -221,8 +221,8 @@ const AdminReimbursements = () => {
                       <a href={selectedReimb.bill_url} target="_blank" rel="noreferrer" className="text-indigo-600 font-semibold hover:underline underline-offset-2">View PDF Receipt</a>
                     </div>
                   ) : (
-                    <a href={selectedReimb.bill_url} target="_blank" rel="noreferrer" className="block w-full h-full">
-                      <img src={selectedReimb.bill_url} alt="Receipt" className="w-full h-full object-cover" />
+                    <a href={selectedReimb.bill_url} target="_blank" rel="noreferrer" className="relative w-full flex items-center justify-center py-4">
+                      <img src={selectedReimb.bill_url} alt="Receipt" className="max-w-full max-h-[350px] lg:max-h-[70vh] object-contain" />
                       <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
                         <span className="opacity-0 group-hover:opacity-100 bg-white px-3 py-1.5 rounded-md font-medium text-sm text-slate-900 shadow-sm">View Full Image</span>
                       </div>

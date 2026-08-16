@@ -268,8 +268,8 @@ const AdminExpenses = () => {
                       <iframe src={selectedExpense.bill_url} className="w-full h-full rounded-xl border border-slate-200 shadow-sm" title="Receipt PDF" />
                     </div>
                   ) : (
-                    <a href={selectedExpense.bill_url} target="_blank" rel="noreferrer" className="block relative w-full h-full flex items-center justify-center">
-                      <img src={selectedExpense.bill_url} alt="Receipt" className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-sm border border-slate-200" />
+                    <a href={selectedExpense.bill_url} target="_blank" rel="noreferrer" className="relative w-full flex items-center justify-center py-4">
+                      <img src={selectedExpense.bill_url} alt="Receipt" className="max-w-full max-h-[350px] lg:max-h-[70vh] object-contain rounded-xl shadow-sm border border-slate-200" />
                       <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors rounded-xl flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur px-4 py-2 rounded-lg font-medium text-slate-800 shadow-sm flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-all">
                           <Eye className="w-4 h-4" /> View Full Image

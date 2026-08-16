@@ -15,7 +15,7 @@ services:
       context: ./backend
     container_name: finance_tracker_backend
     ports:
-      - "8765:8765"
+      - "8257:8765"
     restart: unless-stopped
     env_file:
       - .env
@@ -32,7 +32,7 @@ services:
         - VITE_API_URL=${VITE_API_URL}
     container_name: finance_tracker_frontend
     ports:
-      - "8764:8764"
+      - "3124:8764"
     restart: unless-stopped
     depends_on:
       - backend

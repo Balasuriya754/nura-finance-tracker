@@ -20,6 +20,13 @@ const Register = () => {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    
+    // Validate phone number
+    if (!/^\d{10}$/.test(phone)) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+    
     setError('');
     setMessage('');
     setIsLoading(true);
@@ -102,6 +109,7 @@ const Register = () => {
                   <label className="block text-sm font-medium text-slate-900">Phone</label>
                   <div className="mt-1">
                     <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                      maxLength="10" pattern="\d{10}" title="Phone number must be exactly 10 digits"
                       className="appearance-none block w-full px-4 py-2.5 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 sm:text-sm transition-colors bg-white text-slate-900"
                     />
                   </div>

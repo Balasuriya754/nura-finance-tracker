@@ -31,8 +31,30 @@ const AddExpense = () => {
 
   const subCategoryOptions = ['customer ops', 'employee ops', 'ai services', 'lunch vendor', 'care taker agency'];
 
+  const sharedId = queryParams.get('shared_id');
+
   useEffect(() => {
-    // 1. Check for shared file via Web Share Target
+    const handleSharedId = async () => {
+      if (sharedId) {
+        setLoading(true);
+        try {
+          const res = await api.post(`/expenses/claim-shared/${sharedId}`);
+          navigate(`/add-expense?edit=${res.data.uuid}`, { replace: true });
+        } catch (err) {
+          console.error('Failed to claim shared file', err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    // 1. Check for shared file from backend share-target first
+    if (sharedId) {
+      handleSharedId();
+      return;
+    }
+
+    // 2. Fallback to old IndexedDB check for Service Worker Web Share Target
     const checkSharedFile = () => {
       const request = indexedDB.open('finance_tracker_db', 1);
       
@@ -57,7 +79,6 @@ const AddExpense = () => {
             const objectUrl = URL.createObjectURL(sharedFile);
             setPreviewUrl(objectUrl);
             setFile(sharedFile);
-            // Delete it so it's not loaded again later
             store.delete('latest_shared_file');
           }
         };
@@ -66,7 +87,7 @@ const AddExpense = () => {
 
     checkSharedFile();
 
-    // 2. Normal edit/draft logic
+    // 3. Normal edit/draft logic
     if (editId === 'local-draft') {
       const savedDraft = localStorage.getItem('local_draft');
       if (savedDraft) {
@@ -75,7 +96,7 @@ const AddExpense = () => {
     } else if (editId) {
       fetchExpenseData();
     }
-  }, [editId]);
+  }, [editId, sharedId]);
 
   const fetchExpenseData = async () => {
     try {

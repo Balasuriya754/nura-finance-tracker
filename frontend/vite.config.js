@@ -46,7 +46,7 @@ export default defineConfig({
           }
         ],
         share_target: {
-          action: '/add-expense',
+          action: '/api/expenses/share-target',
           method: 'POST',
           enctype: 'multipart/form-data',
           params: {

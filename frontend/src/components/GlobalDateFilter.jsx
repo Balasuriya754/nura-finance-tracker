@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
+import CustomSelect from './CustomSelect';
 
 const PRESETS = [
   { label: 'Today', value: 'today' },
@@ -56,22 +57,18 @@ const GlobalDateFilter = () => {
         {/* Mobile Dropdown */}
         <div className="flex md:hidden w-full items-center gap-3">
           <Calendar className="w-5 h-5 text-slate-400 shrink-0" />
-          <select 
-            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            value={isCustom ? "custom" : currentPreset}
-            onChange={(e) => {
-              if (e.target.value === "custom") {
+          <CustomSelect
+            value={isCustom ? 'custom' : currentPreset}
+            onChange={(val) => {
+              if (val === 'custom') {
                 setIsCustom(true);
               } else {
-                handlePresetClick(e.target.value);
+                handlePresetClick(val);
               }
             }}
-          >
-            {PRESETS.map(p => (
-              <option key={p.value} value={p.value}>{p.label}</option>
-            ))}
-            <option value="custom">Custom Range</option>
-          </select>
+            options={[...PRESETS, { label: 'Custom Range', value: 'custom' }]}
+            className="w-full"
+          />
         </div>
 
         {/* Desktop Buttons */}

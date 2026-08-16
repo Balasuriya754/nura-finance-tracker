@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: finance_tracker_mongo
+    ports:
+      - "27019:27017"
+    restart: unless-stopped
+    volumes:
+      - finance_tracker_mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+    container_name: finance_tracker_backend
+    ports:
+      - "8765:8765"
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8765 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: finance_tracker_frontend
+    ports:
+      - "8764:8764"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  finance_tracker_mongo_data:

@@ -133,12 +133,15 @@ const Register = () => {
               </>
             ) : (
               <div>
-                <label className="block text-sm font-medium text-slate-900">Enter OTP sent to {email}</label>
+                <label className="block text-sm font-medium text-slate-900">Enter OTP sent to <span className="font-semibold text-slate-800">{email}</span></label>
                 <div className="mt-1">
                   <input type="text" required value={otp} onChange={(e) => setOtp(e.target.value)} maxLength="4"
                     className="appearance-none block w-full px-4 py-2.5 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 sm:text-sm transition-colors bg-white text-slate-900 text-center tracking-widest font-semibold"
                   />
                 </div>
+                <p className="mt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
+                  <span className="font-semibold">Note:</span> A 4-digit OTP has been sent to your email address. Please check your inbox and spam folder.
+                </p>
               </div>
             )}
 

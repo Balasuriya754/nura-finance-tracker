@@ -63,6 +63,9 @@ class ExpenseService:
         
         # Convert back to regular Decimal for Pydantic response
         new_expense["amount"] = Decimal(str(new_expense["amount"]))
+        
+        # Remove MongoDB ObjectId before returning to avoid serialization errors
+        new_expense.pop("_id", None)
         return new_expense
 
     @staticmethod

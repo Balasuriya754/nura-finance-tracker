@@ -42,7 +42,7 @@ async def share_target(
     
     return RedirectResponse(url=f"/add-expense?shared_id={shared_id}", status_code=303)
 
-@router.post("/claim-shared/{shared_id}")
+@router.post("/claim-shared/{shared_id}", response_model=ExpenseResponse)
 async def claim_shared(
     shared_id: str,
     user_uuid: str = Depends(get_current_user_uuid),

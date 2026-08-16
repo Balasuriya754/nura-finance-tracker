@@ -22,7 +22,7 @@ class ReimbursementResponse(BaseModel):
     review_status: Optional[str] = None
     amount: Decimal
     reimbursement_status: ReimbursementStatus
-    remarks: str
+    remarks: Optional[str] = ""
     paid_at: Optional[int] = None
     created_at: int
     updated_at: int

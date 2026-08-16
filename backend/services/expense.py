@@ -240,7 +240,7 @@ class ExpenseService:
         await db["expenses"].update_one({"uuid": expense_uuid}, {"$set": update_data})
         
         # Create reimbursement if paid by employee
-        if expense.get("paid_using") == PaidUsing.PERSONAL:
+        if expense.get("paid_using") in [PaidUsing.PERSONAL, "PERSONAL", "Personal"]:
             from repositories.reimbursement import get_reimbursement_by_expense_uuid, create_reimbursement
             from utils.ids import generate_reimbursement_id
             from bson.decimal128 import Decimal128

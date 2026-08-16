@@ -11,6 +11,11 @@ class UserCreate(BaseModel):
 class SendOTPRequest(BaseModel):
     email: EmailStr
 
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
 class UserResponse(BaseModel):
     uuid: str
     name: str

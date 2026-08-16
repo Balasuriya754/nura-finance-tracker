@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from schemas.user import UserCreate, UserResponse, SendOTPRequest
+from schemas.user import UserCreate, UserResponse, SendOTPRequest, ResetPasswordRequest
 from schemas.token import Token
 from auth.auth_utils import verify_password, create_access_token, get_current_user_uuid, get_database
 from services.user import UserService
@@ -10,6 +10,14 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.post("/send-otp")
 async def send_otp(request: SendOTPRequest, db=Depends(get_database)):
     return await UserService.generate_and_send_otp(request.email, db)
+
+@router.post("/forgot-password-otp")
+async def forgot_password_otp(request: SendOTPRequest, db=Depends(get_database)):
+    return await UserService.send_forgot_password_otp(request.email, db)
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest, db=Depends(get_database)):
+    return await UserService.reset_password(request.email, request.otp, request.new_password, db)
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db=Depends(get_database)):

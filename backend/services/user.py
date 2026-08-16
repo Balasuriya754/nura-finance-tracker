@@ -101,6 +101,81 @@ class UserService:
         return result
 
     @staticmethod
+    async def send_forgot_password_otp(email: str, db: AsyncIOMotorDatabase) -> dict:
+        import random
+        from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+        from config.settings import settings
+        
+        # Check if email is used by a normal user
+        existing_user = await get_user_by_email(db, email)
+        if not existing_user:
+            raise HTTPException(status_code=404, detail="Email not registered as an employee")
+            
+        otp = str(random.randint(1000, 9999))
+        now = int(time.time() * 1000)
+        expires_at = now + 10 * 60 * 1000 # 10 mins expiration
+        
+        await db["otps"].update_one(
+            {"email": email},
+            {"$set": {"otp": otp, "expires_at": expires_at}},
+            upsert=True
+        )
+        
+        conf = ConnectionConfig(
+            MAIL_USERNAME=settings.EMAIL_USER,
+            MAIL_PASSWORD=settings.EMAIL_PASS,
+            MAIL_FROM=settings.EMAIL_USER,
+            MAIL_PORT=settings.SMTP_PORT,
+            MAIL_SERVER=settings.SMTP_SERVER,
+            MAIL_STARTTLS=False,
+            MAIL_SSL_TLS=True,
+            USE_CREDENTIALS=True,
+            VALIDATE_CERTS=True
+        )
+        
+        html = f"<p>Your OTP for password reset is: <strong>{otp}</strong></p>"
+        message = MessageSchema(
+            subject="Your OTP for Finance Tracker Password Reset",
+            recipients=[email],
+            body=html,
+            subtype=MessageType.html
+        )
+        
+        fm = FastMail(conf)
+        try:
+            await fm.send_message(message)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+            
+        return {"message": "OTP sent successfully"}
+
+    @staticmethod
+    async def reset_password(email: str, otp: str, new_password: str, db: AsyncIOMotorDatabase) -> dict:
+        now = int(time.time() * 1000)
+        
+        # Verify OTP
+        otp_record = await db["otps"].find_one({"email": email})
+        if not otp_record or otp_record["otp"] != otp or otp_record["expires_at"] < now:
+            raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+            
+        # Verify User
+        existing_user = await get_user_by_email(db, email)
+        if not existing_user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Update Password
+        password_hash = get_password_hash(new_password)
+        await db["users"].update_one(
+            {"email": email},
+            {"$set": {"password_hash": password_hash, "updated_at": now}}
+        )
+        
+        # Clean up OTP
+        await db["otps"].delete_one({"email": email})
+        
+        return {"message": "Password reset successfully"}
+
+    @staticmethod
     async def get_all_users(db: AsyncIOMotorDatabase):
         pipeline = [
             {"$lookup": {

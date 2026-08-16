@@ -4,10 +4,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { PlusCircle, LogOut, CheckCircle, Clock, FileEdit, Trash2, IndianRupee, Eye } from 'lucide-react';
 import api from '../services/api';
 
+import LogoutConfirmModal from '../components/LogoutConfirmModal';
+
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const [expenses, setExpenses] = useState([]);
   const [filter, setFilter] = useState('ALL'); // ALL, PENDING, APPROVED, REJECTED, DRAFT
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,7 +43,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = () => {
+  const confirmLogout = () => {
     logout();
     navigate('/login');
   };
@@ -98,7 +101,7 @@ const Dashboard = () => {
             </div>
             <h1 className="text-lg font-medium text-slate-900 tracking-tight">Welcome, {user?.name.split(' ')[0]}</h1>
           </div>
-          <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors flex items-center gap-2 text-sm font-medium">
+          <button onClick={() => setShowLogoutModal(true)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors flex items-center gap-2 text-sm font-medium">
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sign out</span>
           </button>
@@ -226,6 +229,12 @@ const Dashboard = () => {
       >
         <PlusCircle className="w-6 h-6" />
       </Link>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 };

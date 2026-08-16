@@ -3,13 +3,16 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Receipt, CreditCard, Users, DollarSign, LogOut, Menu, X, FileText } from 'lucide-react';
 import { AuthContext } from '../contexts/AuthContext';
 
+import LogoutConfirmModal from './LogoutConfirmModal';
+
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
+  const confirmLogout = () => {
     logout();
     navigate('/login');
   };
@@ -82,7 +85,7 @@ const AdminLayout = () => {
             </div>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="group flex w-full items-center px-4 py-2.5 text-sm font-medium text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-700 transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-500 transition-colors" />
@@ -108,6 +111,12 @@ const AdminLayout = () => {
           <Outlet />
         </div>
       </main>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 };

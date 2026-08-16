@@ -51,10 +51,31 @@ const GlobalDateFilter = () => {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 mb-8 shadow-sm">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         
-        {/* Presets */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Mobile Dropdown */}
+        <div className="flex md:hidden w-full items-center gap-3">
+          <Calendar className="w-5 h-5 text-slate-400 shrink-0" />
+          <select 
+            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            value={isCustom ? "custom" : currentPreset}
+            onChange={(e) => {
+              if (e.target.value === "custom") {
+                setIsCustom(true);
+              } else {
+                handlePresetClick(e.target.value);
+              }
+            }}
+          >
+            {PRESETS.map(p => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+
+        {/* Desktop Buttons */}
+        <div className="hidden md:flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 mr-2 text-slate-500 font-semibold text-sm">
             <Calendar className="w-4 h-4" />
             <span>Filter:</span>
@@ -86,23 +107,29 @@ const GlobalDateFilter = () => {
 
         {/* Custom Range Picker */}
         {isCustom && (
-          <div className="flex items-center gap-3 animate-fade-in bg-slate-50 p-2 rounded-lg border border-slate-200">
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="text-sm bg-white border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-            <span className="text-slate-500 text-sm">to</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="text-sm bg-white border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 animate-fade-in bg-slate-50 p-3 sm:p-2 rounded-lg border border-slate-200 mt-2 xl:mt-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-slate-500 text-xs font-semibold uppercase sm:hidden w-12">From</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full sm:w-auto text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+              />
+            </div>
+            <span className="hidden sm:inline text-slate-500 text-sm font-medium">to</span>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-slate-500 text-xs font-semibold uppercase sm:hidden w-12">To</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full sm:w-auto text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+              />
+            </div>
             <button
               onClick={handleCustomApply}
-              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm mt-1 sm:mt-0"
             >
               Apply
             </button>

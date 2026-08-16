@@ -38,8 +38,27 @@ const AddExpense = () => {
       if (sharedId) {
         setLoading(true);
         try {
-          const res = await api.post(`/expenses/claim-shared/${sharedId}`);
-          navigate(`/add-expense?edit=${res.data.uuid}`, { replace: true });
+          // Fetch raw image data as Blob
+          const res = await api.get(`/expenses/shared-file/${sharedId}`, { responseType: 'blob' });
+          
+          // Create File from Blob
+          const filename = res.headers['content-disposition'] 
+            ? res.headers['content-disposition'].split('filename=')[1]?.replace(/"/g, '') || 'shared_receipt.jpg'
+            : 'shared_receipt.jpg';
+            
+          const sharedFile = new File([res.data], filename, { type: res.data.type });
+          
+          // Set in local state
+          const objectUrl = URL.createObjectURL(sharedFile);
+          setPreviewUrl(objectUrl);
+          setFile(sharedFile);
+          
+          // Clean up URL without remounting
+          navigate('/add-expense', { replace: true });
+          
+          // Tell backend to delete the temporary file
+          await api.delete(`/expenses/shared-file/${sharedId}`);
+          
         } catch (err) {
           console.error('Failed to claim shared file', err);
         } finally {

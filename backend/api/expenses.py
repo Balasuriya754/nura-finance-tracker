@@ -42,50 +42,34 @@ async def share_target(
     
     return RedirectResponse(url=f"/add-expense?shared_id={shared_id}", status_code=303)
 
-@router.post("/claim-shared/{shared_id}", response_model=ExpenseResponse)
-async def claim_shared(
+from fastapi.responses import Response
+
+@router.get("/shared-file/{shared_id}")
+async def get_shared_file(
     shared_id: str,
     user_uuid: str = Depends(get_current_user_uuid),
     db=Depends(get_database)
 ):
     """
-    Called by frontend to claim a shared file and convert it into a Draft Expense.
+    Returns the raw file data for a shared image so frontend can store it locally.
     """
     temp_file = await db["shared_temp"].find_one({"shared_id": shared_id})
     if not temp_file:
         raise HTTPException(status_code=404, detail="Shared file not found or expired")
         
-    # Create an in-memory UploadFile object to pass to ExpenseService
-    import io
-    from starlette.datastructures import Headers
-    
-    file_obj = io.BytesIO(temp_file["data"])
-    upload_file = UploadFile(
-        filename=temp_file["filename"],
-        file=file_obj,
-        headers=Headers({"content-type": temp_file["content_type"]})
-    )
-    
-    expense_data = {
-        "description": "Shared Receipt",
-        "amount": Decimal("0.00"),
-        "main_category": "Operations",
-        "sub_category": "Other",
-        "vendor": "Unknown",
-        "gst_bill": False,
-        "paid_using": PaidUsing.PERSONAL,
-        "payment_method": PaymentMethod.UPI,
-        "expense_date": int(__import__('time').time() * 1000),
-        "review_status": ExpenseReviewStatus.DRAFT
-    }
-    
-    # Create Draft Expense
-    draft_expense = await ExpenseService.create_expense(expense_data, upload_file, user_uuid, db)
-    
-    # Clean up temp file
+    return Response(content=temp_file["data"], media_type=temp_file["content_type"])
+
+@router.delete("/shared-file/{shared_id}")
+async def delete_shared_file(
+    shared_id: str,
+    user_uuid: str = Depends(get_current_user_uuid),
+    db=Depends(get_database)
+):
+    """
+    Cleans up the temporary shared file.
+    """
     await db["shared_temp"].delete_one({"shared_id": shared_id})
-    
-    return draft_expense
+    return {"message": "Temporary file deleted"}
 
 @router.post("/", response_model=ExpenseResponse)
 async def create_expense(

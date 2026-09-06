@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Camera, UploadCloud, Receipt, Loader2, Save } from 'lucide-react';
+import { X, UploadCloud, Camera, Loader2, ArrowLeft, Save, Receipt, ChevronDown } from 'lucide-react';
+import { AuthContext } from '../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import CameraModal from '../components/CameraModal';
 
@@ -12,6 +14,7 @@ const AddExpense = () => {
 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [file, setFile] = useState(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -26,7 +29,8 @@ const AddExpense = () => {
     paid_using: 'PERSONAL',
     payment_method: 'UPI',
     expense_date: Date.now(),
-    bill_url: null
+    bill_url: null,
+    is_snack: false
   });
 
   const subCategoryOptions = ['customer ops', 'employee ops', 'ai services', 'lunch vendor', 'care taker agency'];
@@ -132,7 +136,8 @@ const AddExpense = () => {
           paid_using: expenseToEdit.paid_using,
           payment_method: expenseToEdit.payment_method,
           expense_date: expenseToEdit.expense_date,
-          bill_url: expenseToEdit.bill_url
+          bill_url: expenseToEdit.bill_url,
+          is_snack: expenseToEdit.is_snack || false
         });
         setPreviewUrl(expenseToEdit.bill_url);
       }
@@ -166,8 +171,8 @@ const AddExpense = () => {
       return;
     }
 
-    if (!formData.description || !formData.amount) {
-      alert("Please fill description and amount");
+    if (!formData.description || !formData.amount || !formData.main_category || !formData.sub_category || !formData.vendor || !formData.paid_using || !formData.payment_method) {
+      alert("Please enter all the required fields");
       return;
     }
     
@@ -198,6 +203,7 @@ const AddExpense = () => {
         data.append('payment_method', formData.payment_method);
         data.append('expense_date', formData.expense_date);
         data.append('review_status', status);
+        data.append('is_snack', formData.is_snack);
 
         await api.post('/expenses/', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -207,7 +213,7 @@ const AddExpense = () => {
           localStorage.removeItem('local_draft');
         }
       }
-      navigate('/');
+      setShowSuccess(true);
     } catch (err) {
       console.error(err);
       alert('Failed to save expense');
@@ -225,15 +231,18 @@ const AddExpense = () => {
             <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
+            <img src="/finance_logo.jpg" alt="Logo" className="w-8 h-8 rounded object-contain border border-slate-200" />
             <h1 className="text-lg font-medium text-slate-900 tracking-tight">{editId ? 'Edit Expense' : 'New Expense'}</h1>
           </div>
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleSubmit('DRAFT')}
             disabled={submitting}
             className="text-slate-600 hover:text-slate-900 font-medium text-sm flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save Draft</span>
-          </button>
+          </motion.button>
         </div>
       </header>
 
@@ -432,6 +441,18 @@ const AddExpense = () => {
               </div>
             )}
 
+            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_snack}
+                  onChange={(e) => setFormData({...formData, is_snack: e.target.checked})}
+                  className="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500"
+                />
+                <span className="text-sm font-medium text-amber-900">Mark as Snacks Expense (Monthly ₹700 Allowance)</span>
+              </label>
+            </div>
+
           </div>
         </div>
       </main>
@@ -439,14 +460,16 @@ const AddExpense = () => {
       {/* Footer Actions */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 z-20">
         <div className="max-w-3xl mx-auto">
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleSubmit('PENDING')}
             disabled={submitting || loading}
             className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-medium py-3 px-6 rounded-md shadow-sm transition-colors flex items-center justify-center gap-2"
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
             {submitting ? 'Submitting...' : 'Submit Expense'}
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -455,6 +478,42 @@ const AddExpense = () => {
         onClose={() => setIsCameraOpen(false)} 
         onCapture={handleCapture} 
       />
+
+      <AnimatePresence>
+      {showSuccess && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4"
+        >
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 10 }}
+            className="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full flex flex-col items-center text-center relative"
+          >
+            <button 
+              onClick={() => navigate('/')}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img src={`/tick.gif?t=${Date.now()}`} alt="Success" className="w-40 h-40 mb-4 object-contain" />
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Submitted Successfully!</h3>
+            <p className="text-slate-500 mb-6 text-sm">Your expense has been recorded.</p>
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/')} 
+              className="w-full bg-slate-900 text-white font-medium py-3 px-4 rounded-md hover:bg-slate-800 transition-colors shadow-sm"
+            >
+              Close
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -5,6 +5,10 @@ from auth.auth_utils import get_current_user_uuid, get_database
 from services.expense import ExpenseService
 import json
 from decimal import Decimal
+from utils.cache import CacheHelper
+from fastapi.responses import StreamingResponse
+from repositories.user import get_user_by_uuid
+from services.export import ExportService
 
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
@@ -84,6 +88,7 @@ async def create_expense(
     payment_method: PaymentMethod = Form(...),
     expense_date: Optional[int] = Form(None),
     review_status: ExpenseReviewStatus = Form(ExpenseReviewStatus.PENDING),
+    is_snack: bool = Form(False),
     user_uuid: str = Depends(get_current_user_uuid),
     db=Depends(get_database)
 ):
@@ -97,13 +102,37 @@ async def create_expense(
         "paid_using": paid_using,
         "payment_method": payment_method,
         "expense_date": expense_date,
-        "review_status": review_status
+        "review_status": review_status,
+        "is_snack": is_snack
     }
-    return await ExpenseService.create_expense(expense_data, file, user_uuid, db)
+    result = await ExpenseService.create_expense(expense_data, file, user_uuid, db)
+    await CacheHelper.invalidate(f"emp_exp:{user_uuid}")
+    await CacheHelper.invalidate(f"emp_snacks:{user_uuid}")
+    await CacheHelper.invalidate_pattern("admin_exp:*")
+    await CacheHelper.invalidate_pattern("admin_over:*")
+    return result
 
 @router.get("/", response_model=List[ExpenseResponse])
 async def get_my_expenses(user_uuid: str = Depends(get_current_user_uuid), db=Depends(get_database)):
-    return await ExpenseService.get_my_expenses(user_uuid, db)
+    cache_key = f"emp_exp:{user_uuid}"
+    cached = await CacheHelper.get(cache_key)
+    if cached:
+        return cached
+
+    data = await ExpenseService.get_my_expenses(user_uuid, db)
+    await CacheHelper.set(cache_key, data)
+    return data
+
+@router.get("/snacks/summary")
+async def get_snacks_summary(user_uuid: str = Depends(get_current_user_uuid), db=Depends(get_database)):
+    cache_key = f"emp_snacks:{user_uuid}"
+    cached = await CacheHelper.get(cache_key)
+    if cached:
+        return cached
+
+    data = await ExpenseService.get_snacks_summary(user_uuid, db)
+    await CacheHelper.set(cache_key, data)
+    return data
 
 @router.get("/{expense_uuid}", response_model=ExpenseResponse)
 async def get_expense(expense_uuid: str, user_uuid: str = Depends(get_current_user_uuid), db=Depends(get_database)):
@@ -123,7 +152,12 @@ async def update_expense(
     user_uuid: str = Depends(get_current_user_uuid), 
     db=Depends(get_database)
 ):
-    return await ExpenseService.update_expense(expense_uuid, expense_update, user_uuid, db)
+    result = await ExpenseService.update_expense(expense_uuid, expense_update, user_uuid, db)
+    await CacheHelper.invalidate(f"emp_exp:{user_uuid}")
+    await CacheHelper.invalidate(f"emp_snacks:{user_uuid}")
+    await CacheHelper.invalidate_pattern("admin_exp:*")
+    await CacheHelper.invalidate_pattern("admin_over:*")
+    return result
 
 @router.delete("/{expense_uuid}")
 async def delete_expense(
@@ -131,4 +165,52 @@ async def delete_expense(
     user_uuid: str = Depends(get_current_user_uuid), 
     db=Depends(get_database)
 ):
-    return await ExpenseService.delete_expense(expense_uuid, user_uuid, db)
+    result = await ExpenseService.delete_expense(expense_uuid, user_uuid, db)
+    await CacheHelper.invalidate(f"emp_exp:{user_uuid}")
+    await CacheHelper.invalidate(f"emp_snacks:{user_uuid}")
+    await CacheHelper.invalidate_pattern("admin_exp:*")
+    await CacheHelper.invalidate_pattern("admin_over:*")
+    return result
+
+@router.get("/export/data")
+async def export_expenses(
+    start_date: int,
+    end_date: int,
+    export_format: str = "excel",
+    expense_type: str = "general",
+    user_uuid: str = Depends(get_current_user_uuid),
+    db=Depends(get_database)
+):
+    all_expenses = await ExpenseService.get_my_expenses(user_uuid, db)
+    
+    filtered = []
+    for exp in all_expenses:
+        exp_date = exp.get("expense_date", 0)
+        is_snack = exp.get("is_snack", False)
+        
+        # Filter by expense_type
+        if expense_type == "snack" and not is_snack:
+            continue
+        if expense_type == "general" and is_snack:
+            continue
+            
+        if start_date <= exp_date <= end_date:
+            filtered.append(exp)
+
+    user = await get_user_by_uuid(db, user_uuid)
+    user_name = user.get("name", "Employee") if user else "Employee"
+
+    if export_format == "zip":
+        zip_buffer = await ExportService.generate_zip(filtered, user_name)
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename=expenses_export.zip"}
+        )
+    else:
+        excel_buffer = await ExportService.generate_excel(filtered, user_name)
+        return StreamingResponse(
+            excel_buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=expenses_export.xlsx"}
+        )

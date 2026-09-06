@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from database.mongo import Database
+from database.redis_client import RedisClient
 from api import auth, expenses, dashboard
 import uvicorn
 
@@ -28,9 +29,11 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_db_client():
     await Database.connect_db()
+    await RedisClient.connect_redis()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    await RedisClient.close_redis()
     await Database.close_db()
 
 app.include_router(auth.router)

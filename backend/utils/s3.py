@@ -74,3 +74,18 @@ def generate_presigned_url(s3_key: str, expiration=3600) -> str:
     except Exception as e:
         print(f"Error generating presigned URL: {e}")
         return None
+
+def download_file_from_s3(s3_key: str) -> bytes:
+    if not s3_key:
+        return None
+        
+    s3 = get_s3_client()
+    try:
+        response = s3.get_object(
+            Bucket=settings.AWS_S3_BUCKET_NAME,
+            Key=s3_key
+        )
+        return response['Body'].read()
+    except Exception as e:
+        print(f"Error downloading file from S3: {e}")
+        return None

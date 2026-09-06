@@ -80,11 +80,15 @@ async def get_me(token: str = Depends(oauth2_scheme), db=Depends(get_database)):
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         
+    # Generate new token with refreshed expiry
+    new_token = create_access_token(data={"sub": user_uuid, "role": role})
+
     if role == "admin":
         admin = await db["admins"].find_one({"uuid": user_uuid})
         if not admin:
             raise HTTPException(status_code=404, detail="Admin not found")
-        return {"uuid": admin["uuid"], "name": admin.get("name", "Admin"), "email": admin["email"], "role": "admin"}
+        admin_data = {"uuid": admin["uuid"], "name": admin.get("name", "Admin"), "email": admin["email"], "role": "admin"}
+        return {"user": admin_data, "access_token": new_token}
     else:
         user = await db["users"].find_one({"uuid": user_uuid})
         if not user:
@@ -93,4 +97,4 @@ async def get_me(token: str = Depends(oauth2_scheme), db=Depends(get_database)):
         user["role"] = "employee"
         user.pop("_id", None)
         user.pop("password_hash", None)
-        return user
+        return {"user": user, "access_token": new_token}

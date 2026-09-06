@@ -10,6 +10,7 @@ from services.expense import ExpenseService
 from services.user import UserService
 from services.reimbursement import ReimbursementService
 from pydantic import BaseModel
+from utils.cache import CacheHelper
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -22,7 +23,14 @@ async def get_overview(
     db = Depends(get_database)
 ):
     start_ts, end_ts = get_date_range(from_ts, to_ts, preset)
-    return await DashboardService.get_overview_stats(db, start_ts, end_ts)
+    cache_key = f"admin_over:{preset}_{start_ts}_{end_ts}"
+    cached = await CacheHelper.get(cache_key)
+    if cached:
+        return cached
+
+    data = await DashboardService.get_overview_stats(db, start_ts, end_ts)
+    await CacheHelper.set(cache_key, data)
+    return data
 
 @router.get("/expenses", response_model=List[ExpenseResponse])
 async def get_all_expenses(
@@ -33,7 +41,14 @@ async def get_all_expenses(
     db = Depends(get_database)
 ):
     start_ts, end_ts = get_date_range(from_ts, to_ts, preset)
-    return await ExpenseService.get_all_expenses(db, start_ts, end_ts)
+    cache_key = f"admin_exp:{preset}_{start_ts}_{end_ts}"
+    cached = await CacheHelper.get(cache_key)
+    if cached:
+        return cached
+
+    data = await ExpenseService.get_all_expenses(db, start_ts, end_ts)
+    await CacheHelper.set(cache_key, data)
+    return data
 
 @router.get("/expenses/{expense_uuid}", response_model=ExpenseResponse)
 async def get_expense_details(
@@ -57,7 +72,13 @@ async def approve_expense(
     user_uuid: str = Depends(require_dashboard_access),
     db = Depends(get_database)
 ):
-    return await ExpenseService.approve_expense(expense_uuid, db)
+    result = await ExpenseService.approve_expense(expense_uuid, db)
+    await CacheHelper.invalidate_pattern("admin_exp:*")
+    await CacheHelper.invalidate_pattern("admin_over:*")
+    if "user_uuid" in result:
+        await CacheHelper.invalidate(f"emp_exp:{result['user_uuid']}")
+        await CacheHelper.invalidate(f"emp_snacks:{result['user_uuid']}")
+    return result
 
 @router.put("/expenses/{expense_uuid}/reject", response_model=ExpenseResponse)
 async def reject_expense(
@@ -65,7 +86,13 @@ async def reject_expense(
     user_uuid: str = Depends(require_dashboard_access),
     db = Depends(get_database)
 ):
-    return await ExpenseService.reject_expense(expense_uuid, db)
+    result = await ExpenseService.reject_expense(expense_uuid, db)
+    await CacheHelper.invalidate_pattern("admin_exp:*")
+    await CacheHelper.invalidate_pattern("admin_over:*")
+    if "user_uuid" in result:
+        await CacheHelper.invalidate(f"emp_exp:{result['user_uuid']}")
+        await CacheHelper.invalidate(f"emp_snacks:{result['user_uuid']}")
+    return result
 
 @router.get("/reimbursements", response_model=List[ReimbursementResponse])
 async def get_all_reimbursements(
@@ -76,7 +103,14 @@ async def get_all_reimbursements(
     db = Depends(get_database)
 ):
     start_ts, end_ts = get_date_range(from_ts, to_ts, preset)
-    return await ReimbursementService.get_all_reimbursements(db, start_ts, end_ts)
+    cache_key = f"admin_reimb:{preset}_{start_ts}_{end_ts}"
+    cached = await CacheHelper.get(cache_key)
+    if cached:
+        return cached
+
+    data = await ReimbursementService.get_all_reimbursements(db, start_ts, end_ts)
+    await CacheHelper.set(cache_key, data)
+    return data
 
 class CompleteReimbursementRequest(BaseModel):
     remarks: str
@@ -88,14 +122,27 @@ async def complete_reimbursement(
     admin_user_uuid: str = Depends(require_dashboard_access),
     db = Depends(get_database)
 ):
-    return await ReimbursementService.complete_reimbursement(reimbursement_uuid, admin_user_uuid, payload.remarks, db)
+    result = await ReimbursementService.complete_reimbursement(reimbursement_uuid, admin_user_uuid, payload.remarks, db)
+    await CacheHelper.invalidate_pattern("admin_reimb:*")
+    await CacheHelper.invalidate_pattern("admin_exp:*")
+    await CacheHelper.invalidate_pattern("admin_over:*")
+    if "user_uuid" in result:
+        await CacheHelper.invalidate(f"emp_exp:{result['user_uuid']}")
+    return result
 
 @router.get("/employees", response_model=List[UserResponse])
 async def get_all_employees(
     user_uuid: str = Depends(require_dashboard_access),
     db = Depends(get_database)
 ):
-    return await UserService.get_all_users(db)
+    cache_key = "admin_employees"
+    cached = await CacheHelper.get(cache_key)
+    if cached:
+        return cached
+
+    data = await UserService.get_all_users(db)
+    await CacheHelper.set(cache_key, data)
+    return data
 
 @router.get("/employees/{employee_uuid}")
 async def get_employee_profile(

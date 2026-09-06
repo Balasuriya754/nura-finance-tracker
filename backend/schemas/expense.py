@@ -38,6 +38,7 @@ class ExpenseCreate(BaseModel):
     payment_method: PaymentMethod
     expense_date: Optional[int] = None
     review_status: ExpenseReviewStatus = ExpenseReviewStatus.PENDING # Default to PENDING, can be DRAFT
+    is_snack: bool = False
 
 class ExpenseUpdate(BaseModel):
     description: Optional[str] = None
@@ -50,6 +51,7 @@ class ExpenseUpdate(BaseModel):
     payment_method: Optional[PaymentMethod] = None
     expense_date: Optional[int] = None
     review_status: Optional[ExpenseReviewStatus] = None
+    is_snack: Optional[bool] = None
 
 class ExpenseResponse(BaseModel):
     uuid: str
@@ -69,6 +71,7 @@ class ExpenseResponse(BaseModel):
     expense_date: int
     review_status: ExpenseReviewStatus
     reimbursement_status: Optional[str] = None
+    is_snack: bool = False
     created_at: int
     updated_at: int
     

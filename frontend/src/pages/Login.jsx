@@ -33,8 +33,8 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
-        <div className="bg-slate-900 p-3 rounded-lg mb-4 shadow-sm">
-          <Wallet className="w-8 h-8 text-white" />
+        <div className="bg-white p-2 rounded-lg mb-4 shadow-sm border border-slate-200">
+          <img src="/finance_logo.jpg" alt="Finance Tracker Logo" className="w-12 h-12 object-contain rounded" />
         </div>
         <h2 className="mt-4 text-center text-3xl font-bold text-slate-900">
           Finance Tracker

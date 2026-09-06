@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Camera, X, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CameraModal = ({ isOpen, onClose, onCapture }) => {
   const videoRef = useRef(null);
@@ -78,57 +79,67 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
     setIsFrontCamera(!isFrontCamera);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
-        <button onClick={onClose} className="p-2 text-white hover:bg-white/20 rounded-full transition">
-          <X className="w-6 h-6" />
-        </button>
-        <button onClick={toggleCamera} className="p-2 text-white hover:bg-white/20 rounded-full transition">
-          <RefreshCw className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Video Viewfinder */}
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        {error ? (
-          <div className="text-white text-center p-6 bg-red-900/50 rounded-xl border border-red-500/50 mx-4">
-            <p className="font-medium">{error}</p>
-          </div>
-        ) : (
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            className={`w-full h-full object-cover ${isFrontCamera ? 'scale-x-[-1]' : ''}`}
-          />
-        )}
-        
-        {/* Helper overlay for receipts */}
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-8">
-          <div className="w-full max-w-sm aspect-[3/4] border-2 border-white/30 rounded-2xl"></div>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="h-32 bg-black pb-8 flex items-center justify-center pb-safe">
-        <button 
-          onClick={handleCapture}
-          disabled={!!error}
-          className="w-20 h-20 rounded-full bg-white/20 p-2 flex items-center justify-center hover:bg-white/30 transition disabled:opacity-50"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0, y: '100%' }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
         >
-          <div className="w-full h-full rounded-full bg-white flex items-center justify-center shadow-xl">
-            <Camera className="w-8 h-8 text-black" />
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+            <button onClick={onClose} className="p-2 text-white hover:bg-white/20 rounded-full transition">
+              <X className="w-6 h-6" />
+            </button>
+            <button onClick={toggleCamera} className="p-2 text-white hover:bg-white/20 rounded-full transition">
+              <RefreshCw className="w-6 h-6" />
+            </button>
           </div>
-        </button>
-      </div>
 
-      {/* Hidden canvas for image processing */}
-      <canvas ref={canvasRef} className="hidden" />
-    </div>
+          {/* Video Viewfinder */}
+          <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+            {error ? (
+              <div className="text-white text-center p-6 bg-red-900/50 rounded-xl border border-red-500/50 mx-4">
+                <p className="font-medium">{error}</p>
+              </div>
+            ) : (
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className={`w-full h-full object-cover ${isFrontCamera ? 'scale-x-[-1]' : ''}`}
+              />
+            )}
+            
+            {/* Helper overlay for receipts */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-8">
+              <div className="w-full max-w-sm aspect-[3/4] border-2 border-white/30 rounded-2xl"></div>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="h-32 bg-black pb-8 flex items-center justify-center pb-safe">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleCapture}
+              disabled={!!error}
+              className="w-20 h-20 rounded-full bg-white/20 p-2 flex items-center justify-center hover:bg-white/30 transition disabled:opacity-50"
+            >
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center shadow-xl">
+                <Camera className="w-8 h-8 text-black" />
+              </div>
+            </motion.button>
+          </div>
+
+          {/* Hidden canvas for image processing */}
+          <canvas ref={canvasRef} className="hidden" />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

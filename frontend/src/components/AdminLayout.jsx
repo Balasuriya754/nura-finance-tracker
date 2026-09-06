@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Receipt, CreditCard, Users, DollarSign, LogOut, Menu, X, FileText } from 'lucide-react';
 import { AuthContext } from '../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import LogoutConfirmModal from './LogoutConfirmModal';
 
@@ -56,20 +57,21 @@ const AdminLayout = () => {
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || (item.path === '/admin' && location.pathname === '/admin');
             return (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                end={item.path === '/admin'}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'bg-slate-100 text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <item.icon className={`w-5 h-5 mr-3 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
-                {item.name}
-              </NavLink>
+              <motion.div key={item.name} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <NavLink
+                  to={item.path}
+                  end={item.path === '/admin'}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-slate-100 text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 mr-3 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                  {item.name}
+                </NavLink>
+              </motion.div>
             );
           })}
         </nav>
@@ -107,8 +109,19 @@ const AdminLayout = () => {
           <span className="ml-4 text-lg font-bold text-slate-900">Finance Tracker</span>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="w-full"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 

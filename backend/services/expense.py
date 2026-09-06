@@ -51,7 +51,8 @@ class ExpenseService:
             "expense_date": expense_data.get("expense_date") or now,
             "created_at": now,
             "updated_at": now,
-            "is_deleted": False
+            "is_deleted": False,
+            "is_snack": expense_data.get("is_snack", False)
         }
         
         # We need to handle Decimal for Motor to Decimal128.
@@ -114,6 +115,44 @@ class ExpenseService:
                 else:
                     exp["amount"] = Decimal(str(exp["amount"]))
         return expenses
+
+    @staticmethod
+    async def get_snacks_summary(user_uuid: str, db: AsyncIOMotorDatabase):
+        import datetime
+        now = datetime.datetime.now()
+        start_of_month = datetime.datetime(now.year, now.month, 1)
+        start_timestamp = int(start_of_month.timestamp() * 1000)
+        
+        pipeline = [
+            {"$match": {
+                "user_uuid": user_uuid, 
+                "is_deleted": False, 
+                "is_snack": True,
+                "expense_date": {"$gte": start_timestamp}
+            }},
+            {"$group": {
+                "_id": None,
+                "total_spent": {"$sum": "$amount"}
+            }}
+        ]
+        
+        result = await db["expenses"].aggregate(pipeline).to_list(length=1)
+        total_spent = 0.0
+        
+        if result and "total_spent" in result[0]:
+            val = result[0]["total_spent"]
+            if hasattr(val, "to_decimal"):
+                total_spent = float(val.to_decimal())
+            else:
+                total_spent = float(val)
+                
+        allowance = 700.0
+        
+        return {
+            "allowance": allowance,
+            "total_spent": total_spent,
+            "remaining": max(0.0, allowance - total_spent)
+        }
 
     @staticmethod
     async def update_expense(expense_uuid: str, expense_update: ExpenseUpdate, user_uuid: str, db: AsyncIOMotorDatabase):

@@ -13,7 +13,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 // SPA routing fallback
 try {
-  const handler = createHandlerBoundToURL('/index.html');
+  const handler = createHandlerBoundToURL('index.html');
   const navigationRoute = new NavigationRoute(handler, {
     denylist: [
       new RegExp('^/api/'),

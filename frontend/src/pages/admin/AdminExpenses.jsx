@@ -13,9 +13,6 @@ const AdminExpenses = () => {
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('ALL');
-  const [filterCategory, setFilterCategory] = useState('ALL');
-  const [filterPaidUsing, setFilterPaidUsing] = useState('ALL');
   const [filterGst, setFilterGst] = useState('ALL');
 
   const fetchExpenses = async () => {
@@ -37,30 +34,7 @@ const AdminExpenses = () => {
     fetchExpenses();
   }, [searchParams]);
 
-  const handleApprove = async (uuid) => {
-    try {
-      await api.put(`/dashboard/expenses/${uuid}/approve`);
-      setSelectedExpense(null);
-      fetchExpenses();
-    } catch (err) {
-      alert("Failed to approve");
-    }
-  };
-
-  const handleReject = async (uuid) => {
-    try {
-      await api.put(`/dashboard/expenses/${uuid}/reject`);
-      setSelectedExpense(null);
-      fetchExpenses();
-    } catch (err) {
-      alert("Failed to reject");
-    }
-  };
-
   const filteredExpenses = expenses.filter(e => {
-    if (filterStatus !== 'ALL' && e.review_status !== filterStatus) return false;
-    if (filterCategory !== 'ALL' && e.main_category !== filterCategory) return false;
-    if (filterPaidUsing !== 'ALL' && e.paid_using !== filterPaidUsing) return false;
     if (filterGst !== 'ALL' && String(e.gst_bill) !== filterGst) return false;
     
     if (searchQuery) {
@@ -77,30 +51,9 @@ const AdminExpenses = () => {
     return true;
   });
 
-  const getReviewBadge = (status) => {
-    switch (status) {
-      case 'PENDING': return <span className="inline-flex items-center text-xs font-semibold text-amber-600"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2"></span>Pending</span>;
-      case 'APPROVED': return <span className="inline-flex items-center text-xs font-semibold text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>Approved</span>;
-      case 'REJECTED': return <span className="inline-flex items-center text-xs font-semibold text-rose-600 line-through decoration-rose-300"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2"></span>Rejected</span>;
-      case 'DRAFT': return <span className="inline-flex items-center text-xs font-semibold text-slate-500"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 mr-2"></span>Draft</span>;
-      default: return null;
-    }
-  };
 
-  const getReimbursementBadge = (expense) => {
-    if (expense.paid_using === 'COMPANY') return <span className="inline-flex items-center text-xs font-semibold text-slate-400">Not Req.</span>;
-    if (expense.review_status === 'REJECTED') return <span className="inline-flex items-center text-xs font-semibold text-slate-400">Not App.</span>;
-    if (expense.review_status === 'PENDING' || expense.review_status === 'DRAFT') return null;
-    
-    switch (expense.reimbursement_status) {
-      case 'PENDING': return <span className="inline-flex items-center text-xs font-semibold text-amber-600"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2"></span>Pending Pay</span>;
-      case 'COMPLETED': return <span className="inline-flex items-center text-xs font-semibold text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>Paid</span>;
-      default: return null;
-    }
-  };
 
-  // Categories extraction for filter
-  const categories = [...new Set(expenses.map(e => e.main_category).filter(Boolean))];
+
 
   return (
     <div className="max-w-[95rem] mx-auto h-full flex flex-col pb-12 animate-fade-in">
@@ -121,36 +74,8 @@ const AdminExpenses = () => {
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-colors"
           />
         </div>
-        <CustomSelect 
-          value={filterStatus}
-          onChange={setFilterStatus}
-          options={[
-            { value: 'ALL', label: 'All Statuses' },
-            { value: 'PENDING', label: 'Pending Review' },
-            { value: 'APPROVED', label: 'Approved' },
-            { value: 'REJECTED', label: 'Rejected' },
-          ]}
-          className="w-full sm:w-40"
-        />
-        <CustomSelect 
-          value={filterCategory}
-          onChange={setFilterCategory}
-          options={[
-            { value: 'ALL', label: 'All Categories' },
-            ...categories.map(c => ({ value: c, label: c }))
-          ]}
-          className="w-full sm:w-40"
-        />
-        <CustomSelect 
-          value={filterPaidUsing}
-          onChange={setFilterPaidUsing}
-          options={[
-            { value: 'ALL', label: 'All Payments' },
-            { value: 'PERSONAL', label: 'Personal' },
-            { value: 'COMPANY', label: 'Company' },
-          ]}
-          className="w-full sm:w-40"
-        />
+
+
         <CustomSelect 
           value={filterGst}
           onChange={setFilterGst}
@@ -172,10 +97,8 @@ const AdminExpenses = () => {
                 <th className="py-4 px-6 whitespace-nowrap">Expense ID</th>
                 <th className="py-4 px-6 whitespace-nowrap">Date</th>
                 <th className="py-4 px-6 whitespace-nowrap">Vendor</th>
-                <th className="py-4 px-6 whitespace-nowrap">Category</th>
                 <th className="py-4 px-6 whitespace-nowrap">Amount</th>
-                <th className="py-4 px-6 whitespace-nowrap">Paid Using</th>
-                <th className="py-4 px-6 whitespace-nowrap">Status</th>
+
                 <th className="py-4 px-6 text-center whitespace-nowrap">Action</th>
               </tr>
             </thead>
@@ -187,10 +110,8 @@ const AdminExpenses = () => {
                     <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
                     <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
                     <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
-                    <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
                     <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
-                    <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
-                    <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
+
                     <td className="py-4 px-6 text-center"><div className="h-8 bg-slate-200 rounded w-8 mx-auto"></div></td>
                   </tr>
                 ))
@@ -210,19 +131,8 @@ const AdminExpenses = () => {
                       {new Date(expense.expense_date || expense.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="py-4 px-6 text-sm text-slate-900 font-medium max-w-[150px] truncate">{expense.vendor}</td>
-                    <td className="py-4 px-6 text-sm text-slate-500">{expense.main_category}</td>
                     <td className="py-4 px-6 text-sm font-bold text-slate-900">₹{expense.amount}</td>
-                    <td className="py-4 px-6 text-sm">
-                      <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${expense.paid_using === 'COMPANY' ? 'bg-indigo-50 text-indigo-700 ring-indigo-600/20' : 'bg-slate-100 text-slate-700 ring-slate-500/10'}`}>
-                        {expense.paid_using}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-sm">
-                      <div className="flex flex-col gap-1.5">
-                        {getReviewBadge(expense.review_status)}
-                        {expense.paid_using === 'PERSONAL' && getReimbursementBadge(expense)}
-                      </div>
-                    </td>
+
                     <td className="py-4 px-6 text-center">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedExpense(expense); }}
@@ -246,15 +156,7 @@ const AdminExpenses = () => {
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <div className="flex items-center gap-4">
                 <h2 className="text-xl font-bold text-slate-900 tracking-tight">Expense Details</h2>
-                <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
-                  {getReviewBadge(selectedExpense.review_status)}
-                  {selectedExpense.paid_using === 'PERSONAL' && (
-                    <>
-                      <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                      {getReimbursementBadge(selectedExpense)}
-                    </>
-                  )}
-                </div>
+
               </div>
               <button onClick={() => setSelectedExpense(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-200"><X className="w-5 h-5" /></button>
             </div>
@@ -328,14 +230,8 @@ const AdminExpenses = () => {
                       <p className="text-base font-medium text-slate-900">{selectedExpense.vendor}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500 mb-1">Category</p>
-                      <p className="text-base font-medium text-slate-900">{selectedExpense.main_category}</p>
-                      <p className="text-xs text-slate-500">{selectedExpense.sub_category}</p>
-                    </div>
-                    <div>
                       <p className="text-sm text-slate-500 mb-1">Payment Details</p>
-                      <p className="text-base font-medium text-slate-900">{selectedExpense.paid_using}</p>
-                      <p className="text-xs text-slate-500">{selectedExpense.payment_method}</p>
+                      <p className="text-base font-medium text-slate-900">{selectedExpense.payment_method}</p>
                     </div>
                     <div>
                       <p className="text-sm text-slate-500 mb-1">GST Included</p>
@@ -355,22 +251,7 @@ const AdminExpenses = () => {
               </div>
             </div>
 
-            {selectedExpense.review_status === 'PENDING' && (
-              <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex gap-4">
-                <button 
-                  onClick={() => handleReject(selectedExpense.uuid)}
-                  className="flex-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 py-3 rounded-xl font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  Reject
-                </button>
-                <button 
-                  onClick={() => handleApprove(selectedExpense.uuid)}
-                  className="flex-[2] bg-slate-900 text-white hover:bg-black py-3 rounded-xl font-semibold shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
-                >
-                  Approve
-                </button>
-              </div>
-            )}
+
           </div>
         </div>
       )}

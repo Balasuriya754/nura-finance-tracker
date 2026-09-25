@@ -1,11 +1,9 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import HTTPException, UploadFile
 from typing import Optional
-from schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseReviewStatus, PaidUsing
-from schemas.reimbursement import ReimbursementStatus
+from schemas.expense import ExpenseCreate, ExpenseUpdate
 from repositories.expense import create_expense, get_expense_by_uuid, get_expenses_by_user, update_expense, soft_delete_expense
-from repositories.reimbursement import create_reimbursement, get_reimbursement_by_expense_uuid, soft_delete_pending_reimbursement
-from utils.ids import generate_expense_id, generate_reimbursement_id
+from utils.ids import generate_expense_id
 from utils.s3 import upload_bill_to_s3
 import time
 from decimal import Decimal
@@ -40,19 +38,14 @@ class ExpenseService:
             "amount": str(expense_data["amount"]), # Store as string or Decimal128 in MongoDB if configured, but keeping string for generic MongoDB is safer unless using Decimal128 explicitly. Let's use Decimal128 representation or convert to string for motor compatibility. Motor accepts Decimal128. Let's use Decimal type which gets converted by PyMongo to Decimal128. Actually, standard Decimal is fine, motor converts it if CodecOptions is set, but to be safe let's just use float() or keep as Decimal. Wait, user specifically requested Decimal. Let's use float for MongoDB, wait user said "Decimal128".
             # For simplicity, let's keep Decimal. Pydantic models will handle conversion.
             "amount": expense_data["amount"],
-            "main_category": expense_data["main_category"],
-            "sub_category": expense_data["sub_category"],
             "vendor": expense_data["vendor"],
             "gst_bill": expense_data["gst_bill"],
-            "paid_using": expense_data["paid_using"],
             "payment_method": expense_data["payment_method"],
             "bill_url": bill_url,
-            "review_status": expense_data["review_status"],
             "expense_date": expense_data.get("expense_date") or now,
             "created_at": now,
             "updated_at": now,
-            "is_deleted": False,
-            "is_snack": expense_data.get("is_snack", False)
+            "is_deleted": False
         }
         
         # We need to handle Decimal for Motor to Decimal128.
@@ -73,38 +66,7 @@ class ExpenseService:
     async def get_my_expenses(user_uuid: str, db: AsyncIOMotorDatabase):
         pipeline = [
             {"$match": {"user_uuid": user_uuid, "is_deleted": False}},
-            {"$sort": {"created_at": -1}},
-            {"$lookup": {
-                "from": "reimbursements",
-                "localField": "uuid",
-                "foreignField": "expense_uuid",
-                "pipeline": [{"$match": {"is_deleted": False}}],
-                "as": "reimbursements"
-            }},
-            {"$addFields": {
-                "reimbursement_status": {
-                    "$cond": {
-                        "if": {"$eq": ["$paid_using", "COMPANY"]},
-                        "then": "NOT_REQUIRED",
-                        "else": {
-                            "$cond": {
-                                "if": {"$ne": ["$review_status", "APPROVED"]},
-                                "then": "NOT_REQUIRED",
-                                "else": {
-                                    "$cond": {
-                                        "if": {"$gt": [{"$size": "$reimbursements"}, 0]},
-                                        "then": {"$arrayElemAt": ["$reimbursements.reimbursement_status", 0]},
-                                        "else": "NOT_REQUIRED"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }},
-            {"$project": {
-                "reimbursements": 0
-            }}
+            {"$sort": {"created_at": -1}}
         ]
         expenses = await db["expenses"].aggregate(pipeline).to_list(length=1000)
         for exp in expenses:
@@ -117,19 +79,15 @@ class ExpenseService:
         return expenses
 
     @staticmethod
-    async def get_snacks_summary(user_uuid: str, db: AsyncIOMotorDatabase):
-        import datetime
-        now = datetime.datetime.now()
-        start_of_month = datetime.datetime(now.year, now.month, 1)
-        start_timestamp = int(start_of_month.timestamp() * 1000)
+    async def get_snacks_summary(user_uuid: str, start_ts: int, end_ts: int, db: AsyncIOMotorDatabase):
+        match_query = {
+            "user_uuid": user_uuid, 
+            "is_deleted": False, 
+            "expense_date": {"$gte": start_ts, "$lte": end_ts}
+        }
         
         pipeline = [
-            {"$match": {
-                "user_uuid": user_uuid, 
-                "is_deleted": False, 
-                "is_snack": True,
-                "expense_date": {"$gte": start_timestamp}
-            }},
+            {"$match": match_query},
             {"$group": {
                 "_id": None,
                 "total_spent": {"$sum": "$amount"}
@@ -145,13 +103,21 @@ class ExpenseService:
                 total_spent = float(val.to_decimal())
             else:
                 total_spent = float(val)
-                
-        allowance = 700.0
+
+        expenses_cursor = db["expenses"].find(match_query).sort("expense_date", -1)
+        expenses_list = await expenses_cursor.to_list(length=1000)
         
+        for exp in expenses_list:
+            if "amount" in exp and exp["amount"] is not None:
+                if hasattr(exp["amount"], "to_decimal"):
+                    exp["amount"] = float(exp["amount"].to_decimal())
+                else:
+                    exp["amount"] = float(exp["amount"])
+            exp["_id"] = str(exp["_id"])
+                
         return {
-            "allowance": allowance,
             "total_spent": total_spent,
-            "remaining": max(0.0, allowance - total_spent)
+            "expenses": expenses_list
         }
 
     @staticmethod
@@ -159,9 +125,6 @@ class ExpenseService:
         expense = await get_expense_by_uuid(db, expense_uuid, user_uuid)
         if not expense:
             raise HTTPException(status_code=404, detail="Expense not found")
-            
-        if expense.get("review_status") not in [ExpenseReviewStatus.DRAFT, ExpenseReviewStatus.PENDING]:
-            raise HTTPException(status_code=400, detail="Cannot edit approved or rejected expenses")
             
         update_data = {k: v for k, v in expense_update.dict().items() if v is not None}
         
@@ -185,11 +148,7 @@ class ExpenseService:
         if not expense:
             raise HTTPException(status_code=404, detail="Expense not found")
             
-        if expense.get("review_status") not in [ExpenseReviewStatus.DRAFT, ExpenseReviewStatus.PENDING]:
-            raise HTTPException(status_code=400, detail="Cannot delete approved or rejected expenses")
-            
         await soft_delete_expense(db, expense_uuid)
-        await soft_delete_pending_reimbursement(db, expense_uuid)
         
         return {"message": "Expense deleted successfully"}
 
@@ -216,13 +175,6 @@ class ExpenseService:
                 "foreignField": "uuid",
                 "as": "user_info"
             }},
-            {"$lookup": {
-                "from": "reimbursements",
-                "localField": "uuid",
-                "foreignField": "expense_uuid",
-                "pipeline": [{"$match": {"is_deleted": False}}],
-                "as": "reimbursements"
-            }},
             {"$unwind": {
                 "path": "$user_info",
                 "preserveNullAndEmptyArrays": True
@@ -230,30 +182,10 @@ class ExpenseService:
             {"$addFields": {
                 "employee_name": "$user_info.name",
                 "employee_email": "$user_info.email",
-                "employee_phone": "$user_info.phone",
-                "reimbursement_status": {
-                    "$cond": {
-                        "if": {"$eq": ["$paid_using", "COMPANY"]},
-                        "then": "NOT_REQUIRED",
-                        "else": {
-                            "$cond": {
-                                "if": {"$ne": ["$review_status", "APPROVED"]},
-                                "then": "NOT_REQUIRED",
-                                "else": {
-                                    "$cond": {
-                                        "if": {"$gt": [{"$size": "$reimbursements"}, 0]},
-                                        "then": {"$arrayElemAt": ["$reimbursements.reimbursement_status", 0]},
-                                        "else": "NOT_REQUIRED"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                "employee_phone": "$user_info.phone"
             }},
             {"$project": {
-                "user_info": 0,
-                "reimbursements": 0
+                "user_info": 0
             }}
         ]
         expenses = await db["expenses"].aggregate(pipeline).to_list(length=1000)
@@ -266,75 +198,4 @@ class ExpenseService:
                     exp["amount"] = Decimal(str(exp["amount"]))
         return expenses
 
-    @staticmethod
-    async def approve_expense(expense_uuid: str, db: AsyncIOMotorDatabase):
-        expense = await db["expenses"].find_one({"uuid": expense_uuid, "is_deleted": False})
-        if not expense:
-            raise HTTPException(status_code=404, detail="Expense not found")
-        
-        if expense.get("review_status") != ExpenseReviewStatus.PENDING:
-            raise HTTPException(status_code=400, detail="Only pending expenses can be approved")
-            
-        update_data = {
-            "review_status": ExpenseReviewStatus.APPROVED,
-            "updated_at": int(time.time() * 1000)
-        }
-        await db["expenses"].update_one({"uuid": expense_uuid}, {"$set": update_data})
-        
-        # Create reimbursement if paid by employee
-        if expense.get("paid_using") in [PaidUsing.PERSONAL, "PERSONAL", "Personal"]:
-            from repositories.reimbursement import get_reimbursement_by_expense_uuid, create_reimbursement
-            from utils.ids import generate_reimbursement_id
-            from bson.decimal128 import Decimal128
-            from schemas.reimbursement import ReimbursementStatus
-            
-            existing = await get_reimbursement_by_expense_uuid(db, expense_uuid)
-            if not existing:
-                reimbursement_uuid = await generate_reimbursement_id(db)
-                amount = expense.get("amount")
-                new_reimbursement = {
-                    "uuid": reimbursement_uuid,
-                    "expense_uuid": expense_uuid,
-                    "user_uuid": expense.get("user_uuid"),
-                    "amount": amount if isinstance(amount, Decimal128) else Decimal128(str(amount)),
-                    "reimbursement_status": ReimbursementStatus.PENDING,
-                    "paid_by_user_uuid": None,
-                    "paid_at": None,
-                    "remarks": "",
-                    "created_at": update_data["updated_at"],
-                    "updated_at": update_data["updated_at"],
-                    "is_deleted": False
-                }
-                await create_reimbursement(db, new_reimbursement)
-        
-        expense["review_status"] = ExpenseReviewStatus.APPROVED
-        expense["updated_at"] = update_data["updated_at"]
-        if "amount" in expense and expense["amount"] is not None:
-            from decimal import Decimal
-            expense["amount"] = Decimal(str(expense["amount"]))
-        return expense
 
-    @staticmethod
-    async def reject_expense(expense_uuid: str, db: AsyncIOMotorDatabase):
-        expense = await db["expenses"].find_one({"uuid": expense_uuid, "is_deleted": False})
-        if not expense:
-            raise HTTPException(status_code=404, detail="Expense not found")
-            
-        if expense.get("review_status") != ExpenseReviewStatus.PENDING:
-            raise HTTPException(status_code=400, detail="Only pending expenses can be rejected")
-            
-        update_data = {
-            "review_status": ExpenseReviewStatus.REJECTED,
-            "updated_at": int(time.time() * 1000)
-        }
-        await db["expenses"].update_one({"uuid": expense_uuid}, {"$set": update_data})
-        
-        # Soft delete any pending reimbursements
-        await soft_delete_pending_reimbursement(db, expense_uuid)
-        
-        expense["review_status"] = ExpenseReviewStatus.REJECTED
-        expense["updated_at"] = update_data["updated_at"]
-        if "amount" in expense and expense["amount"] is not None:
-            from decimal import Decimal
-            expense["amount"] = Decimal(str(expense["amount"]))
-        return expense

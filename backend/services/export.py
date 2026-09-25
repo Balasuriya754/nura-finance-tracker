@@ -1,3 +1,8 @@
+
+
+
+
+
 import io
 import zipfile
 import openpyxl
@@ -19,9 +24,6 @@ class ExportService:
             cell = ws.cell(row=1, column=col)
             cell.font = Font(bold=True)
             cell.alignment = Alignment(horizontal="center")
-
-        # Sort expenses by date ascending
-        expenses = sorted(expenses, key=lambda x: x.get("expense_date", 0))
 
         for idx, exp in enumerate(expenses, start=1):
             # EX01 format
@@ -60,13 +62,10 @@ class ExportService:
     async def generate_zip(expenses: list, user_name: str) -> io.BytesIO:
         zip_buffer = io.BytesIO()
         
-        # Sort expenses by date ascending to match Excel ID generation
-        expenses = sorted(expenses, key=lambda x: x.get("expense_date", 0))
-
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for idx, exp in enumerate(expenses, start=1):
                 expense_id = f"EX{idx:02d}"
-
+                
                 bill_url = exp.get("bill_url")
                 if bill_url and not bill_url.startswith("http"):
                     # We expect a direct S3 key here.
@@ -78,4 +77,3 @@ class ExportService:
             
         zip_buffer.seek(0)
         return zip_buffer
-

@@ -9,49 +9,22 @@ class PaymentMethod(str, Enum):
     CARD = "CARD"
     BANK = "BANK"
 
-class MainCategory(str, Enum):
-    OPERATIONS = "Operations"
-    ENGINEERING = "Engineering"
-    SALES = "Sales"
-    MARKETING = "Marketing"
-    HR = "HR"
-    CUSTOMER_SERVICE = "Customer Service"
-
-class PaidUsing(str, Enum):
-    PERSONAL = "PERSONAL"
-    COMPANY = "COMPANY"
-
-class ExpenseReviewStatus(str, Enum):
-    DRAFT = "DRAFT"
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
 
 class ExpenseCreate(BaseModel):
     description: str
     amount: Decimal
-    main_category: MainCategory
-    sub_category: str
     vendor: str
     gst_bill: bool
-    paid_using: PaidUsing
     payment_method: PaymentMethod
     expense_date: Optional[int] = None
-    review_status: ExpenseReviewStatus = ExpenseReviewStatus.PENDING # Default to PENDING, can be DRAFT
-    is_snack: bool = False
 
 class ExpenseUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[Decimal] = None
-    main_category: Optional[MainCategory] = None
-    sub_category: Optional[str] = None
     vendor: Optional[str] = None
     gst_bill: Optional[bool] = None
-    paid_using: Optional[PaidUsing] = None
     payment_method: Optional[PaymentMethod] = None
     expense_date: Optional[int] = None
-    review_status: Optional[ExpenseReviewStatus] = None
-    is_snack: Optional[bool] = None
 
 class ExpenseResponse(BaseModel):
     uuid: str
@@ -61,17 +34,11 @@ class ExpenseResponse(BaseModel):
     employee_phone: Optional[str] = None
     description: str
     amount: Decimal
-    main_category: Optional[MainCategory] = None
-    sub_category: Optional[str] = None
     vendor: Optional[str] = None
     gst_bill: Optional[bool] = None
-    paid_using: PaidUsing
     payment_method: PaymentMethod
     bill_url: Optional[str] = None
     expense_date: int
-    review_status: ExpenseReviewStatus
-    reimbursement_status: Optional[str] = None
-    is_snack: bool = False
     created_at: int
     updated_at: int
     

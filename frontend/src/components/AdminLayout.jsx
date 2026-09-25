@@ -21,7 +21,6 @@ const AdminLayout = () => {
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Expenses', path: '/admin/expenses', icon: Receipt },
-    { name: 'Reimbursements', path: '/admin/reimbursements', icon: CreditCard },
     { name: 'Employees', path: '/admin/employees', icon: Users },
     { name: 'Reports', path: '/admin/reports', icon: FileText },
     { name: 'Payroll', path: '/admin/payroll', icon: DollarSign },

@@ -92,7 +92,6 @@ const AdminEmployees = () => {
                 <th className="py-4 px-6 whitespace-nowrap">Phone</th>
                 <th className="py-4 px-6 whitespace-nowrap text-right">Total Expenses</th>
                 <th className="py-4 px-6 whitespace-nowrap text-center">Pending Reviews</th>
-                <th className="py-4 px-6 whitespace-nowrap text-right">Pending Reimb</th>
                 <th className="py-4 px-6 whitespace-nowrap text-center">Dashboard</th>
                 <th className="py-4 px-6 whitespace-nowrap text-center">Status</th>
               </tr>
@@ -105,7 +104,6 @@ const AdminEmployees = () => {
                     <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
                     <td className="py-4 px-6 text-right"><div className="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
                     <td className="py-4 px-6 text-center"><div className="h-4 bg-slate-200 rounded w-8 mx-auto"></div></td>
-                    <td className="py-4 px-6 text-right"><div className="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
                     <td className="py-4 px-6 text-center"><div className="h-4 bg-slate-200 rounded w-12 mx-auto"></div></td>
                     <td className="py-4 px-6 text-center"><div className="h-4 bg-slate-200 rounded w-12 mx-auto"></div></td>
                   </tr>
@@ -138,9 +136,6 @@ const AdminEmployees = () => {
                       ) : (
                          <span className="text-slate-400 font-medium">-</span>
                       )}
-                    </td>
-                    <td className="py-4 px-6 text-sm font-bold text-slate-900 text-right">
-                      {employee.pending_reimbursements_amount > 0 ? `₹${employee.pending_reimbursements_amount.toLocaleString()}` : <span className="text-slate-400 font-medium">-</span>}
                     </td>
                     <td className="py-4 px-6 text-center">
                       {employee.can_access_dashboard ? 
@@ -194,39 +189,9 @@ const AdminEmployees = () => {
                       icon={DollarSign} 
                     />
                     <StatCard 
-                      title="Approved" 
-                      value={profileData.stats.approved_count} 
-                      icon={CheckCircle} 
-                    />
-                    <StatCard 
-                      title="Rejected" 
-                      value={profileData.stats.rejected_count} 
-                      icon={XCircle} 
-                    />
-                    <StatCard 
-                      title="Pending" 
-                      value={profileData.stats.pending_count} 
+                      title="Total Count" 
+                      value={profileData.stats.total_count} 
                       icon={FileText} 
-                    />
-                    <StatCard 
-                      title="Personal Paid" 
-                      value={`₹${profileData.stats.personal_payments.toLocaleString()}`} 
-                      icon={CreditCard} 
-                    />
-                    <StatCard 
-                      title="Company Paid" 
-                      value={`₹${profileData.stats.company_payments.toLocaleString()}`} 
-                      icon={Building2} 
-                    />
-                    <StatCard 
-                      title="Pending Reimb." 
-                      value={`₹${profileData.stats.pending_reimbursements.toLocaleString()}`} 
-                      icon={DollarSign} 
-                    />
-                    <StatCard 
-                      title="Completed Reimb." 
-                      value={`₹${profileData.stats.completed_reimbursements.toLocaleString()}`} 
-                      icon={CheckCircle} 
                     />
                   </div>
 
@@ -238,9 +203,8 @@ const AdminEmployees = () => {
                           <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
                             <th className="py-3 px-4">Date</th>
                             <th className="py-3 px-4">Description</th>
-                            <th className="py-3 px-4">Category</th>
                             <th className="py-3 px-4">Amount</th>
-                            <th className="py-3 px-4">Status</th>
+
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -253,13 +217,9 @@ const AdminEmployees = () => {
                                   {new Date(exp.expense_date || exp.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                                 </td>
                                 <td className="py-3 px-4 text-sm font-medium text-slate-900">{exp.description}</td>
-                                <td className="py-3 px-4 text-xs text-slate-500">{exp.main_category}</td>
                                 <td className="py-3 px-4 text-sm font-bold text-slate-900">₹{exp.amount}</td>
                                 <td className="py-3 px-4 text-xs font-semibold">
-                                  {exp.review_status === 'APPROVED' && <span className="text-emerald-600">Approved</span>}
-                                  {exp.review_status === 'REJECTED' && <span className="text-rose-600 line-through decoration-rose-300">Rejected</span>}
-                                  {exp.review_status === 'PENDING' && <span className="text-amber-600">Pending</span>}
-                                  {exp.review_status === 'DRAFT' && <span className="text-slate-500">Draft</span>}
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle className="w-3 h-3" /> Submitted</span>
                                 </td>
                               </tr>
                             ))

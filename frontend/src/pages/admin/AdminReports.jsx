@@ -60,8 +60,8 @@ const AdminReports = () => {
     let keys = [];
 
     if (reportType === 'EXPENSES' || reportType === 'GST') {
-      headers = ['Expense ID', 'Employee Name', 'Email', 'Date', 'Description', 'Category', 'Vendor', 'Amount', 'Paid Using', 'GST Bill', 'Status'];
-      keys = ['uuid', 'employee_name', 'employee_email', 'expense_date', 'description', 'main_category', 'vendor', 'amount', 'paid_using', 'gst_bill', 'review_status'];
+      headers = ['Expense ID', 'Employee Name', 'Email', 'Date', 'Description', 'Vendor', 'Amount', 'GST Bill'];
+      keys = ['uuid', 'employee_name', 'employee_email', 'expense_date', 'description', 'vendor', 'amount', 'gst_bill'];
     } else if (reportType === 'REIMBURSEMENTS') {
       headers = ['Reimbursement ID', 'Expense ID', 'Employee Name', 'Expense Date', 'Vendor', 'Amount', 'Reimbursement Status', 'Reimbursement Date', 'Remarks'];
       keys = ['uuid', 'expense_uuid', 'employee_name', 'expense_date', 'vendor', 'amount', 'reimbursement_status', 'paid_at', 'remarks'];
@@ -142,7 +142,6 @@ const AdminReports = () => {
               onChange={setReportType}
               options={[
                 { value: 'EXPENSES', label: 'All Expenses Report' },
-                { value: 'REIMBURSEMENTS', label: 'Reimbursements Report' },
                 { value: 'GST', label: 'GST Input Tax Report' },
               ]}
               className="w-full"

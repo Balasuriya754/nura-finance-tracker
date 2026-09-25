@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from './components/PageTransition';
+import PwaReloadPrompt from './components/PwaReloadPrompt';
 import { AuthContext, AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -14,7 +15,7 @@ import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/admin/AdminLogin';
 import Overview from './pages/admin/Overview';
 import AdminExpenses from './pages/admin/AdminExpenses';
-import AdminReimbursements from './pages/admin/AdminReimbursements';
+
 import AdminEmployees from './pages/admin/AdminEmployees';
 import AdminReports from './pages/admin/AdminReports';
 
@@ -50,7 +51,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin" element={<AdminRoute><PageTransition><AdminLayout /></PageTransition></AdminRoute>}>
           <Route index element={<Overview />} />
           <Route path="expenses" element={<AdminExpenses />} />
-          <Route path="reimbursements" element={<AdminReimbursements />} />
+
           <Route path="employees" element={<AdminEmployees />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="payroll" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Payroll</h1><p className="text-gray-500">Coming Soon</p></div>} />
@@ -65,6 +66,7 @@ function App() {
     <AuthProvider>
       <Router>
         <AnimatedRoutes />
+        <PwaReloadPrompt />
       </Router>
     </AuthProvider>
   );

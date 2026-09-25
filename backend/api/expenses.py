@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from typing import List, Optional
-from schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse, ExpenseReviewStatus, MainCategory, PaidUsing, PaymentMethod
+from schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse, PaymentMethod
 from auth.auth_utils import get_current_user_uuid, get_database
 from services.expense import ExpenseService
 import json
@@ -15,18 +15,31 @@ router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 from fastapi.responses import RedirectResponse
 import uuid
 
+from fastapi import Request
+
 @router.post("/share-target")
 async def share_target(
-    shared_file: Optional[UploadFile] = File(None),
-    title: Optional[str] = Form(None),
-    text: Optional[str] = Form(None),
+    request: Request,
     db=Depends(get_database)
 ):
     """
     Receives file from PWA Web Share Target natively.
     No Auth because browsers do not attach Authorization headers to native form submissions.
     """
-    if not shared_file:
+    try:
+        form = await request.form()
+    except Exception as e:
+        print("Error parsing share target form:", e)
+        return RedirectResponse(url="/add-expense", status_code=303)
+        
+    # The browser might send a list or a single item depending on implementation
+    shared_file_field = form.get("shared_file")
+    if isinstance(shared_file_field, list):
+        shared_file = shared_file_field[0] if len(shared_file_field) > 0 else None
+    else:
+        shared_file = shared_file_field
+
+    if not shared_file or not hasattr(shared_file, "filename") or not shared_file.filename:
         return RedirectResponse(url="/add-expense", status_code=303)
         
     shared_id = str(uuid.uuid4())
@@ -34,8 +47,6 @@ async def share_target(
     # Store temporarily in DB
     file_content = await shared_file.read()
     
-    # Using GridFS or just a simple collection for temporary storage.
-    # Since it's a small file and temporary, we can store it in MongoDB directly (up to 16MB)
     await db["shared_temp"].insert_one({
         "shared_id": shared_id,
         "filename": shared_file.filename,
@@ -77,33 +88,23 @@ async def delete_shared_file(
 
 @router.post("/", response_model=ExpenseResponse)
 async def create_expense(
-    file: Optional[UploadFile] = File(None),
+    file: UploadFile = File(...),
     description: str = Form(...),
     amount: Decimal = Form(...),
-    main_category: MainCategory = Form(...),
-    sub_category: str = Form(...),
     vendor: str = Form(...),
     gst_bill: bool = Form(...),
-    paid_using: PaidUsing = Form(...),
     payment_method: PaymentMethod = Form(...),
     expense_date: Optional[int] = Form(None),
-    review_status: ExpenseReviewStatus = Form(ExpenseReviewStatus.PENDING),
-    is_snack: bool = Form(False),
     user_uuid: str = Depends(get_current_user_uuid),
     db=Depends(get_database)
 ):
     expense_data = {
         "description": description,
         "amount": amount,
-        "main_category": main_category,
-        "sub_category": sub_category,
         "vendor": vendor,
         "gst_bill": gst_bill,
-        "paid_using": paid_using,
         "payment_method": payment_method,
-        "expense_date": expense_date,
-        "review_status": review_status,
-        "is_snack": is_snack
+        "expense_date": expense_date
     }
     result = await ExpenseService.create_expense(expense_data, file, user_uuid, db)
     await CacheHelper.invalidate(f"emp_exp:{user_uuid}")
@@ -124,14 +125,14 @@ async def get_my_expenses(user_uuid: str = Depends(get_current_user_uuid), db=De
     return data
 
 @router.get("/snacks/summary")
-async def get_snacks_summary(user_uuid: str = Depends(get_current_user_uuid), db=Depends(get_database)):
-    cache_key = f"emp_snacks:{user_uuid}"
-    cached = await CacheHelper.get(cache_key)
-    if cached:
-        return cached
-
-    data = await ExpenseService.get_snacks_summary(user_uuid, db)
-    await CacheHelper.set(cache_key, data)
+async def get_snacks_summary(
+    start_ts: int, 
+    end_ts: int, 
+    user_uuid: str = Depends(get_current_user_uuid), 
+    db=Depends(get_database)
+):
+    # No caching for date-range specific queries to keep it simple and accurate
+    data = await ExpenseService.get_snacks_summary(user_uuid, start_ts, end_ts, db)
     return data
 
 @router.get("/{expense_uuid}", response_model=ExpenseResponse)
@@ -177,7 +178,6 @@ async def export_expenses(
     start_date: int,
     end_date: int,
     export_format: str = "excel",
-    expense_type: str = "general",
     user_uuid: str = Depends(get_current_user_uuid),
     db=Depends(get_database)
 ):
@@ -186,14 +186,6 @@ async def export_expenses(
     filtered = []
     for exp in all_expenses:
         exp_date = exp.get("expense_date", 0)
-        is_snack = exp.get("is_snack", False)
-        
-        # Filter by expense_type
-        if expense_type == "snack" and not is_snack:
-            continue
-        if expense_type == "general" and is_snack:
-            continue
-            
         if start_date <= exp_date <= end_date:
             filtered.append(exp)
 

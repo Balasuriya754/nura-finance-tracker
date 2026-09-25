@@ -73,7 +73,7 @@ const Overview = () => {
       <GlobalDateFilter />
 
       {/* Primary Financial KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-10">
         <StatCard
           title="Expenses"
           value={`₹${stats.total_expenses?.toLocaleString() || 0}`}
@@ -83,16 +83,6 @@ const Overview = () => {
           title="Pending Reviews"
           value={stats.pending_reviews}
           icon={FileText}
-        />
-        <StatCard
-          title="Pending Reimbursements"
-          value={`₹${stats.pending_reimbursements?.toLocaleString() || 0}`}
-          icon={Activity}
-        />
-        <StatCard
-          title="Completed Reimbursements"
-          value={`₹${stats.total_reimbursed_amount?.toLocaleString() || 0}`}
-          icon={CheckCircle}
         />
       </div>
 
@@ -117,28 +107,7 @@ const Overview = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-10">
-        {/* Payment Splits */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-8">Payment Sources</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-3">
-                <Building2 className="w-5 h-5 text-slate-400" />
-                <span className="text-sm font-semibold text-slate-700">Company Paid</span>
-              </div>
-              <span className="font-bold text-slate-900 text-lg">₹{stats.company_paid_expenses?.toLocaleString() || 0}</span>
-            </div>
-
-            <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-slate-400" />
-                <span className="text-sm font-semibold text-slate-700">Personal Paid</span>
-              </div>
-              <span className="font-bold text-slate-900 text-lg">₹{stats.personal_paid_expenses?.toLocaleString() || 0}</span>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:gap-6 mb-10">
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 gap-4">

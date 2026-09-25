@@ -11,7 +11,6 @@ import ExportModal from '../components/ExportModal';
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const [expenses, setExpenses] = useState([]);
-  const [filter, setFilter] = useState('ALL'); // ALL, PENDING, APPROVED, REJECTED, DRAFT
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -27,22 +26,9 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const response = await api.get('/expenses/');
-      let allExpenses = response.data;
+      let allExpenses = [...response.data];
 
-      const localDraftStr = localStorage.getItem('local_draft');
-      if (localDraftStr) {
-        const localDraft = JSON.parse(localDraftStr);
-        allExpenses.unshift({
-          uuid: 'local-draft',
-          description: localDraft.description || 'Unsaved Draft',
-          amount: localDraft.amount || 0,
-          expense_date: localDraft.expense_date || Date.now(),
-          review_status: 'DRAFT',
-          payment_method: localDraft.payment_method || 'N/A',
-          paid_using: localDraft.paid_using || 'N/A',
-          bill_url: null
-        });
-      }
+
 
       setExpenses(allExpenses);
     } catch (err) {
@@ -70,34 +56,9 @@ const Dashboard = () => {
     }
   };
 
-  const getReviewBadge = (review_status) => {
-    switch (review_status) {
-      case 'PENDING': return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"><Clock className="w-3 h-3" /> Pending</span>;
-      case 'APPROVED': return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle className="w-3 h-3" /> Approved</span>;
-      case 'REJECTED': return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">Rejected</span>;
-      case 'DRAFT': return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">Draft</span>;
-      default: return null;
-    }
-  };
 
-  const getReimbursementBadge = (expense) => {
-    if (expense.paid_using === 'COMPANY') {
-      return <span className="text-xs font-medium text-slate-400">Not Required</span>;
-    }
-    if (expense.review_status === 'REJECTED') {
-      return <span className="text-xs font-medium text-slate-400">Not Applicable</span>;
-    }
-    if (expense.review_status === 'PENDING' || expense.review_status === 'DRAFT') {
-      return <span className="text-xs font-medium text-slate-400">Awaiting Approval</span>;
-    }
-    switch (expense.reimbursement_status) {
-      case 'PENDING': return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Pending Pay</span>;
-      case 'COMPLETED': return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Paid</span>;
-      default: return <span className="text-xs font-medium text-slate-400">Awaiting Approval</span>;
-    }
-  };
 
-  const filteredExpenses = filter === 'ALL' ? expenses : expenses.filter(e => e.review_status === filter);
+
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
@@ -153,26 +114,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-slate-200">
-          <nav className="-mb-px flex space-x-6 overflow-x-auto hide-scrollbar" aria-label="Tabs">
-            {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'DRAFT'].map((f) => (
-              <button
-                key={f}
-                onClick={() => { setFilter(f); setVisibleCount(5); }}
-                className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${filter === f
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  }`}
-              >
-                {f.charAt(0) + f.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </nav>
-        </div>
-
         {/* Expenses List */}
-        <div className="bg-white shadow-sm ring-1 ring-slate-200 rounded-lg overflow-hidden relative">
+        <div className="bg-white shadow-sm ring-1 ring-slate-200 rounded-lg overflow-hidden relative mt-6">
           <AnimatePresence mode="wait">
           {loading ? (
             <motion.ul 
@@ -200,7 +143,7 @@ const Dashboard = () => {
                 </li>
               ))}
             </motion.ul>
-          ) : filteredExpenses.length === 0 ? (
+          ) : expenses.length === 0 ? (
             <motion.div 
               key="empty"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -225,7 +168,7 @@ const Dashboard = () => {
             <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ul className="divide-y divide-slate-100 overflow-hidden">
                 <AnimatePresence initial={false}>
-                  {filteredExpenses.slice(0, visibleCount).map((expense) => (
+                  {expenses.slice(0, visibleCount).map((expense) => (
                     <motion.li 
                       key={expense.uuid} 
                       initial={{ height: 0, opacity: 0 }}
@@ -241,12 +184,7 @@ const Dashboard = () => {
                     <div className="flex flex-wrap items-center gap-3 mt-1.5 mb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 font-medium">Expense:</span>
-                        {getReviewBadge(expense.review_status)}
-                      </div>
-                      <div className="w-px h-3 bg-slate-300"></div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 font-medium">Reimbursement:</span>
-                        {getReimbursementBadge(expense)}
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle className="w-3 h-3" /> Submitted</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -254,7 +192,7 @@ const Dashboard = () => {
                         {new Date(expense.expense_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                       <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                      <p className="truncate uppercase tracking-wider text-[10px] font-medium">Via {expense.payment_method} · {expense.paid_using}</p>
+                      <p className="truncate uppercase tracking-wider text-[10px] font-medium">Via {expense.payment_method}</p>
                     </div>
                   </div>
 
@@ -275,7 +213,6 @@ const Dashboard = () => {
                           <Eye className="w-4 h-4" />
                         </a>
                       )}
-                      {(expense.review_status === 'DRAFT' || expense.review_status === 'PENDING') && (
                         <>
                           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(`/add-expense?edit=${expense.uuid}`)} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors" title="Edit">
                             <FileEdit className="w-4 h-4" />
@@ -284,14 +221,13 @@ const Dashboard = () => {
                             <Trash2 className="w-4 h-4" />
                           </motion.button>
                         </>
-                      )}
                     </div>
                   </div>
                 </motion.li>
               ))}
               </AnimatePresence>
               </ul>
-              {(visibleCount < filteredExpenses.length || visibleCount > 5) && (
+              {(visibleCount < expenses.length || visibleCount > 5) && (
                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-center gap-3">
                   {visibleCount > 5 && (
                     <motion.button
@@ -303,7 +239,7 @@ const Dashboard = () => {
                       View Less
                     </motion.button>
                   )}
-                  {visibleCount < filteredExpenses.length && (
+                  {visibleCount < expenses.length && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.95 }}

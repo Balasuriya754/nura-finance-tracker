@@ -208,15 +208,7 @@ class UserService:
                         "in": {"$add": ["$$value", {"$cond": [{"$isNumber": "$$this.amount"}, "$$this.amount", 0]}]}
                     }
                 },
-                "pending_reviews_count": {
-                    "$size": {
-                        "$filter": {
-                            "input": "$user_expenses",
-                            "as": "exp",
-                            "cond": {"$eq": ["$$exp.review_status", "PENDING"]}
-                        }
-                    }
-                },
+
                 "pending_reimbursements_amount": {
                     "$reduce": {
                         "input": {

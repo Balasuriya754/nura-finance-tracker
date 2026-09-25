@@ -2,7 +2,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import HTTPException, UploadFile
 from typing import Optional
 from schemas.expense import ExpenseCreate, ExpenseUpdate
-from repositories.expense import create_expense, get_expense_by_uuid, get_expenses_by_user, update_expense, soft_delete_expense
+from repositories.expense import create_expense, get_expense_by_uuid, get_expenses_by_user, update_expense, soft_delete_expense, hard_delete_expense
 from utils.ids import generate_expense_id
 from utils.s3 import upload_bill_to_s3
 import time
@@ -148,7 +148,7 @@ class ExpenseService:
         if not expense:
             raise HTTPException(status_code=404, detail="Expense not found")
             
-        await soft_delete_expense(db, expense_uuid)
+        await hard_delete_expense(db, expense_uuid)
         
         return {"message": "Expense deleted successfully"}
 

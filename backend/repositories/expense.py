@@ -17,3 +17,6 @@ async def update_expense(db: AsyncIOMotorDatabase, uuid: str, update_data: dict)
 
 async def soft_delete_expense(db: AsyncIOMotorDatabase, uuid: str) -> None:
     await db["expenses"].update_one({"uuid": uuid}, {"$set": {"is_deleted": True}})
+
+async def hard_delete_expense(db: AsyncIOMotorDatabase, uuid: str) -> None:
+    await db["expenses"].delete_one({"uuid": uuid})

@@ -15,31 +15,22 @@ router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 from fastapi.responses import RedirectResponse
 import uuid
 
-from fastapi import Request
+from fastapi import UploadFile, File, Form
 
 @router.post("/share-target")
 async def share_target(
-    request: Request,
+    shared_file: UploadFile = File(None),
+    title: str = Form(None),
+    text: str = Form(None),
+    url: str = Form(None),
     db=Depends(get_database)
 ):
     """
     Receives file from PWA Web Share Target natively.
     No Auth because browsers do not attach Authorization headers to native form submissions.
     """
-    try:
-        form = await request.form()
-    except Exception as e:
-        print("Error parsing share target form:", e)
-        return RedirectResponse(url="/add-expense", status_code=303)
-        
-    # The browser might send a list or a single item depending on implementation
-    shared_file_field = form.get("shared_file")
-    if isinstance(shared_file_field, list):
-        shared_file = shared_file_field[0] if len(shared_file_field) > 0 else None
-    else:
-        shared_file = shared_file_field
-
     if not shared_file or not hasattr(shared_file, "filename") or not shared_file.filename:
+        print("Share target failed: No file provided or filename missing")
         return RedirectResponse(url="/add-expense", status_code=303)
         
     shared_id = str(uuid.uuid4())

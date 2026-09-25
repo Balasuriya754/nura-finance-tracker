@@ -29,26 +29,36 @@ const PwaReloadPrompt = () => {
           initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.95 }}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] bg-slate-900 text-white p-4 rounded-lg shadow-2xl max-w-sm w-[calc(100%-2rem)] sm:w-auto flex flex-col sm:flex-row items-center gap-4 border border-slate-700"
+          className="fixed bottom-6 right-6 z-[100] max-w-sm w-full sm:w-96 overflow-hidden rounded-2xl bg-slate-900/90 backdrop-blur-md shadow-2xl border border-slate-700/50 flex flex-col p-5"
         >
-          <div className="flex-1 text-sm font-medium text-center sm:text-left">
-            A new update is available!
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => updateServiceWorker(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Update Now
-            </button>
-            <button
-              onClick={() => setNeedRefresh(false)}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors flex items-center justify-center"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          {/* Glowing Accents */}
+          <div className="absolute top-0 left-1/4 w-1/2 h-1 bg-emerald-500 rounded-b-full shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+          
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-emerald-500/10 rounded-full flex-shrink-0">
+              <RefreshCw className="w-6 h-6 text-emerald-400" />
+            </div>
+            <div className="flex-1 pt-1">
+              <h4 className="text-white font-semibold text-sm mb-1">Update Available</h4>
+              <p className="text-slate-400 text-xs leading-relaxed mb-4">
+                A new version of Finance Tracker is ready. Refresh to get the latest features and bug fixes.
+              </p>
+              
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  onClick={() => updateServiceWorker(true)}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                >
+                  Update Now
+                </button>
+                <button
+                  onClick={() => setNeedRefresh(false)}
+                  className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors text-xs font-semibold uppercase tracking-wider"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}

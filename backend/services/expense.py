@@ -70,12 +70,12 @@ class ExpenseService:
         ]
         expenses = await db["expenses"].aggregate(pipeline).to_list(length=1000)
         for exp in expenses:
+            exp.pop("_id", None)
             if "amount" in exp and exp["amount"] is not None:
-                from decimal import Decimal
                 if hasattr(exp["amount"], "to_decimal"):
-                    exp["amount"] = Decimal(str(exp["amount"].to_decimal()))
+                    exp["amount"] = float(exp["amount"].to_decimal())
                 else:
-                    exp["amount"] = Decimal(str(exp["amount"]))
+                    exp["amount"] = float(exp["amount"])
         return expenses
 
     @staticmethod
@@ -190,12 +190,12 @@ class ExpenseService:
         ]
         expenses = await db["expenses"].aggregate(pipeline).to_list(length=1000)
         for exp in expenses:
+            exp.pop("_id", None)
             if "amount" in exp and exp["amount"] is not None:
-                from decimal import Decimal
                 if hasattr(exp["amount"], "to_decimal"):
-                    exp["amount"] = Decimal(str(exp["amount"].to_decimal()))
+                    exp["amount"] = float(exp["amount"].to_decimal())
                 else:
-                    exp["amount"] = Decimal(str(exp["amount"]))
+                    exp["amount"] = float(exp["amount"])
         return expenses
 
 
